@@ -6,7 +6,7 @@ A small app which scrapes a persons logbook data from the moonboard website and 
 Install 'geckodriver' (driver for firefox) 
 
 Using the aur (which threw a bunch of 404s for me):
-`ỳay -S aur/geckodriver-hg`
+`yay -S aur/geckodriver-hg`
 
 Using pip:
 `pip install get-gecko-driver`
