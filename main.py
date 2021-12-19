@@ -1,65 +1,61 @@
 __version__ = "1.0"
 
-import json
 from Scraper import Scraper
 from Plot import Plot
 from os.path import exists
 from os import environ
+import json
+import threading
+from Const import *
 
 # prevent kivy from parsing command line args
 environ["KIVY_NO_ARGS"] = "1"  # nopep8
 
-import getopt
-import sys
-from kivy.app import App
 import kivy
+from kivy.app import App
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.lang import Builder
-
-# process arguments
-(OPT, _) = getopt.getopt(sys.argv[1:], "cdu:p:", [
-    "cache", "debug", "username", "password"])
-OPT = dict(OPT)
-
-DEBUG = '-d' in OPT or '--debug' in OPT
-USE_CACHE = '-c' in OPT or '--cache' in OPT
-USERNAME = OPT['-u'] if OPT['-u'] != '' else OPT['--username']
-PASSWORD = OPT['-p'] if OPT['-p'] != '' else OPT['--password']
 
 
 class Plotter(App):
     def build(self):
 
         # get data which is a list of dictionaries, sorted by entry date
-        scraper = Scraper(DEBUG)  # TODO : run this in background thread
-        # TODO : await until scraper has been initalized
-        data = self.get_data(scraper)
-        print("data", data)
+        potential_thread = None
 
-        Builder.load_file("app.kv")
-
-        return Plot(data)
-
-    def get_data(self, scraper) -> dict:
-        data = {}
-
-        if not USE_CACHE or not exists('./data.json'):
-            # refetch data
-            data = scraper.fetch_data(USERNAME, PASSWORD)
-
-            if USE_CACHE:
-                # cache data
-                data_json = json.dumps(data, indent=4)
-
-                with open('data.json', 'w') as f:
-                    f.write(data_json)
-        else:
+        if exists(CACHE_PATH):
             # get catched data
             with open('data.json', 'r') as f:
-                data = json.load(f)
+                self.data = json.load(f)
 
-        return data
+            potential_thread = threading.Thread(
+                target=self.init_scraper, name="Scraper-Initalizer")
+            potential_thread.start()
+
+        else:
+            self.init_scraper()
+
+        # get view
+        Builder.load_file("app.kv")
+
+        return Plot(self.data)
+
+    def init_scraper(self):
+        """Needs to be called to initalize the scraper, after refetching can be done by simply calling 'fetch_data' with 'self.scraper' as argument"""
+        self.scraper = Scraper(DEBUG)
+        self.fetch_data()
+        print("Initalization done", len(self.data), self.data)
+
+    def fetch_data(self) -> dict:
+        # refetch data
+        self.data = self.scraper.fetch_data(USERNAME, PASSWORD)
+
+        # cache data
+        data_json = json.dumps(self.data, indent=4)
+
+        with open('data.json', 'w') as f:
+            f.write(data_json)
 
 
 if __name__ == '__main__':

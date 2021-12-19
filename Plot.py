@@ -38,7 +38,7 @@ class Plot(BoxLayout):
         for point in self.data:
 
             dmy = point["Date"]
-            date = dmy[0] + '.' + dmy[1] + '.' + dmy[2]
+            date = str(dmy[0]) + '.' + str(dmy[1]) + '.' + str(dmy[2])
 
             if date in sends_by_date:
                 sends_by_date[date].append(point)
